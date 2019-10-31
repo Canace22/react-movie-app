@@ -1,68 +1,174 @@
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+# react 创建电影 app 步骤
 
-## Available Scripts
+### 1、 项目创建
+  
+```js
+npm install -g create-react-app
 
-In the project directory, you can run:
+create-react-app <item-name>
 
-### `yarn start`
+yarn start
+```
 
-Runs the app in the development mode.<br />
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+### 2、创建 components 目录
 
-The page will reload if you make edits.<br />
-You will also see any lint errors in the console.
+(1) 把 App.js 拉到该目录下，同时更新 index.js 下 App.js 的路径
 
-### `yarn test`
+(2) 创建Header.js，header 组件，接收父组件传过来的标题，App-header 是 App.css 中的一个 class
 
-Launches the test runner in the interactive watch mode.<br />
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+```js
+import React from "react";
 
-### `yarn build`
+const Header = (props) => {
+  return (
+    <header className="App-header">
+      <h2>{props.text}</h2>
+    </header>
+  );
+};
 
-Builds the app for production to the `build` folder.<br />
-It correctly bundles React in production mode and optimizes the build for the best performance.
+export default Header;
+```
 
-The build is minified and the filenames include the hashes.<br />
-Your app is ready to be deployed!
+(3) 创建 Movie.js，该组件用于展示父组件传过来的电影相关数据
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+```js
+import React from "react";
 
-### `yarn eject`
+const DEFAULT_PLACEHOLDER_IMAGE =
+  "https://m.media-amazon.com/images/M/MV5BMTczNTI2ODUwOF5BMl5BanBnXkFtZTcwMTU0NTIzMw@@._V1_SX300.jpg";
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+const Movie = ({ movie }) => {
+  const poster =
+    movie.Poster === "N/A" ? DEFAULT_PLACEHOLDER_IMAGE : movie.Poster;
+  return (
+    <div className="movie">
+      <h2>{movie.Title}</h2>
+      <div>
+        <img
+          width="200"
+          alt={`The movie titled: ${movie.Title}`}
+          src={poster}
+        />
+      </div>
+      <p>({movie.Year})</p>
+    </div>
+  );
+};
 
-Instead, it will copy all the configuration files and the transitive dependencies (Webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+export default Movie;
+```
 
-## Learn More
+(4) 创建 Search.js，该组件实现搜索功能，其中用到了 react 的 useState 钩子
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+```js
+import React, { useState } from "react";
 
-To learn React, check out the [React documentation](https://reactjs.org/).
 
-### Code Splitting
+const Search = (props) => {
+  const [searchValue, setSearchValue] = useState("");
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/code-splitting
+  const handleSearchInputChanges = (e) => {
+    setSearchValue(e.target.value);
+  }
 
-### Analyzing the Bundle Size
+  const resetInputField = () => {
+    setSearchValue("")
+  }
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size
+  const callSearchFunction = (e) => {
+    e.preventDefault();
+    props.search(searchValue);
+    resetInputField();
+  }
 
-### Making a Progressive Web App
+  return (
+    <form className="search">
+      <input
+        value={searchValue}
+        onChange={handleSearchInputChanges}
+        type="text"
+      />
+      <input onClick={callSearchFunction} type="submit" value="SEARCH" />
+    </form>
+  );
+}
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app
+export default Search;
+```
 
-### Advanced Configuration
+### 3、更新 App.js 文件，引用上述新组件
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/advanced-configuration
+```js
+import React, { useState, useEffect } from "react";
+import "../App.css";
+import Header from "./Header";
+import Movie from "./Movie";
+import Search from "./Search";
 
-### Deployment
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/deployment
+const MOVIE_API_URL = "https://www.omdbapi.com/?s=man&apikey=4a3b711b"; // you should replace this with yours
 
-### `yarn build` fails to minify
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify
+const App = () => {
+  const [loading, setLoading] = useState(true);
+  const [movies, setMovies] = useState([]);
+  const [errorMessage, setErrorMessage] = useState(null);
+
+    useEffect(() => {
+    fetch(MOVIE_API_URL)
+      .then(response => response.json())
+      .then(jsonResponse => {
+        setMovies(jsonResponse.Search);
+        setLoading(false);
+      });
+  }, []);
+
+    const search = searchValue => {
+    setLoading(true);
+    setErrorMessage(null);
+
+    fetch(`https://www.omdbapi.com/?s=${searchValue}&apikey=4a3b711b`)
+      .then(response => response.json())
+      .then(jsonResponse => {
+        if (jsonResponse.Response === "True") {
+          setMovies(jsonResponse.Search);
+          setLoading(false);
+        } else {
+          setErrorMessage(jsonResponse.Error);
+          setLoading(false);
+        }
+      });
+  	};
+
+    
+    return (
+     <div className="App">
+      <Header text="HOOKED" />
+      <Search search={search} />
+      <p className="App-intro">Sharing a few of our favourite movies</p>
+      <div className="movies">
+        {loading && !errorMessage ? (
+         <span>loading...</span>
+         ) : errorMessage ? (
+          <div className="errorMessage">{errorMessage}</div>
+        ) : (
+          movies.map((movie, index) => (
+            <Movie key={`${index}-${movie.Title}`} movie={movie} />
+          ))
+        )}
+      </div>
+    </div>
+  );
+};
+
+
+export default App;
+```
+
+### 4、完结撒花
+
+
+
